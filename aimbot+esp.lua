@@ -1,73 +1,120 @@
-local SilentAim = false
-local AutoShoot = false
-local ESP = false
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
-local ui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ui.Name = "ScriptHub"
-ui.ResetOnSpawn = false
+local espEnabled = false
+local silentAimEnabled = false
 
-local main = Instance.new("Frame", ui)
-main.Size = UDim2.new(0, 180, 0, 220)
-main.Position = UDim2.new(0, 20, 0.5, -110)
-main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-main.BorderSizePixel = 0
+local gui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+gui.Name = "MobileFastHub"
 
-local corner = Instance.new("UICorner", main)
-corner.CornerRadius = UDim.new(0, 8)
+local openButton = Instance.new("TextButton", gui)
+openButton.Size = UDim2.new(0, 100, 0, 40)
+openButton.Position = UDim2.new(0, 10, 0, 10)
+openButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+openButton.TextColor3 = Color3.new(1,1,1)
+openButton.Font = Enum.Font.GothamBold
+openButton.TextScaled = true
+openButton.Text = "Open Hub"
+Instance.new("UICorner", openButton).CornerRadius = UDim.new(0, 8)
 
-local layout = Instance.new("UIListLayout", main)
-layout.Padding = UDim.new(0, 8)
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-layout.VerticalAlignment = Enum.VerticalAlignment.Center
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 200, 0, 240)
+frame.Position = UDim2.new(0, 20, 0.5, -120)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+frame.Visible = false
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 
-local function createButton(name, callback)
-    local btn = Instance.new("TextButton", main)
-    btn.Size = UDim2.new(0, 140, 0, 40)
-    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextScaled = true
-    btn.Text = name
-    btn.MouseButton1Click:Connect(callback)
-    return btn
-end
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+title.TextColor3 = Color3.new(1,1,1)
+title.Font = Enum.Font.GothamBold
+title.TextScaled = true
+title.Text = "Fast Script Hub"
+Instance.new("UICorner", title).CornerRadius = UDim.new(0, 10)
 
-local silentBtn = createButton("Silent Aim", function()
-    SilentAim = not SilentAim
-    silentBtn.BackgroundColor3 = SilentAim and Color3.fromRGB(0,170,0) or Color3.fromRGB(50,50,50)
+local espBtn = Instance.new("TextButton", frame)
+espBtn.Size = UDim2.new(0, 160, 0, 50)
+espBtn.Position = UDim2.new(0, 20, 0, 60)
+espBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+espBtn.TextColor3 = Color3.new(1,1,1)
+espBtn.Font = Enum.Font.GothamBold
+espBtn.TextScaled = true
+espBtn.Text = "ESP: OFF"
+
+local silentBtn = Instance.new("TextButton", frame)
+silentBtn.Size = UDim2.new(0, 160, 0, 50)
+silentBtn.Position = UDim2.new(0, 20, 0, 130)
+silentBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+silentBtn.TextColor3 = Color3.new(1,1,1)
+silentBtn.Font = Enum.Font.GothamBold
+silentBtn.TextScaled = true
+silentBtn.Text = "Silent Aim: OFF"
+
+openButton.MouseButton1Click:Connect(function()
+    frame.Visible = not frame.Visible
+    openButton.Text = frame.Visible and "Close Hub" or "Open Hub"
 end)
 
-local autoBtn = createButton("Auto Shoot", function()
-    AutoShoot = not AutoShoot
-    autoBtn.BackgroundColor3 = AutoShoot and Color3.fromRGB(0,170,0) or Color3.fromRGB(50,50,50)
+espBtn.MouseButton1Click:Connect(function()
+    espEnabled = not espEnabled
+    espBtn.Text = espEnabled and "ESP: ON" or "ESP: OFF"
+    espBtn.BackgroundColor3 = espEnabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(50,50,50)
 end)
 
-local espBtn = createButton("ESP", function()
-    ESP = not ESP
-    espBtn.BackgroundColor3 = ESP and Color3.fromRGB(0,170,0) or Color3.fromRGB(50,50,50)
+silentBtn.MouseButton1Click:Connect(function()
+    silentAimEnabled = not silentAimEnabled
+    silentBtn.Text = silentAimEnabled and "Silent Aim: ON" or "Silent Aim: OFF"
+    silentBtn.BackgroundColor3 = silentAimEnabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(50,50,50)
 end)
 
-local function isAlive(plr)
-    return plr and plr.Character and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0
-end
+local dragging
+local dragInput
+local dragStart
+local startPos
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if dragging and dragInput then
+        local delta = dragInput.Position - dragStart
+        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
 
 local function getClosestEnemy()
-    local closest, dist = nil, math.huge
+    local closest, shortest = nil, math.huge
     for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and isAlive(plr) and plr.Team ~= LocalPlayer.Team then
-            local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                local pos, visible = Camera:WorldToViewportPoint(hrp.Position)
-                if visible then
-                    local mag = (Camera.CFrame.Position - hrp.Position).Magnitude
-                    if mag < dist then
-                        dist = mag
+        if plr ~= LocalPlayer and plr.Team ~= LocalPlayer.Team then
+            local char = plr.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local pos, onScreen = Camera:WorldToViewportPoint(char.HumanoidRootPart.Position)
+                if onScreen then
+                    local dist = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(pos.X, pos.Y)).Magnitude
+                    if dist < shortest then
+                        shortest = dist
                         closest = plr
                     end
                 end
@@ -77,61 +124,44 @@ local function getClosestEnemy()
     return closest
 end
 
-local espGui = {}
+local espGui = Instance.new("Folder", gui)
+espGui.Name = "EspFolder"
 
 RunService.RenderStepped:Connect(function()
-    if ESP then
+    if espEnabled then
         for _, plr in ipairs(Players:GetPlayers()) do
-            if plr ~= LocalPlayer and isAlive(plr) and plr.Team ~= LocalPlayer.Team then
-                if not espGui[plr] then
-                    local billboard = Instance.new("BillboardGui", plr.Character:WaitForChild("HumanoidRootPart"))
-                    billboard.Size = UDim2.new(0,100,0,40)
-                    billboard.StudsOffset = Vector3.new(0,3,0)
-                    billboard.AlwaysOnTop = true
-                    local label = Instance.new("TextLabel", billboard)
-                    label.Size = UDim2.new(1,0,1,0)
-                    label.BackgroundTransparency = 1
-                    label.TextColor3 = Color3.new(1,0,0)
-                    label.Font = Enum.Font.GothamBold
-                    label.TextScaled = true
-                    label.Text = plr.Name
-                    espGui[plr] = billboard
-                end
-            else
-                if espGui[plr] then
-                    espGui[plr]:Destroy()
-                    espGui[plr] = nil
-                end
+            if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local tag = espGui:FindFirstChild(plr.Name) or Instance.new("BillboardGui", espGui)
+                tag.Name = plr.Name
+                tag.Adornee = plr.Character.HumanoidRootPart
+                tag.Size = UDim2.new(0,100,0,30)
+                tag.StudsOffset = Vector3.new(0,3,0)
+                tag.AlwaysOnTop = true
+
+                local label = tag:FindFirstChild("NameLabel") or Instance.new("TextLabel", tag)
+                label.Name = "NameLabel"
+                label.Size = UDim2.new(1,0,1,0)
+                label.BackgroundTransparency = 1
+                label.TextColor3 = plr.Team == LocalPlayer.Team and Color3.fromRGB(0,255,0) or Color3.fromRGB(255,0,0)
+                label.Font = Enum.Font.GothamBold
+                label.TextScaled = true
+                label.Text = plr.Name
             end
         end
     else
-        for plr, gui in pairs(espGui) do
-            if gui then
-                gui:Destroy()
-            end
-        end
-        espGui = {}
+        espGui:ClearAllChildren()
     end
 end)
 
-RunService.RenderStepped:Connect(function()
-    if SilentAim then
+local oldNamecall
+oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+    local args = {...}
+    if tostring(self) == "BulletEvent" and getnamecallmethod() == "FireServer" and silentAimEnabled then
         local target = getClosestEnemy()
-        if target and isAlive(target) then
-            local hrp = target.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                Mouse.Target = hrp
-                Mouse.Hit = hrp.CFrame
-            end
+        if target and target.Character and target.Character:FindFirstChild("Head") then
+            args[1] = target.Character.Head.Position
+            return oldNamecall(self, unpack(args))
         end
     end
-end)
-
-RunService.RenderStepped:Connect(function()
-    if AutoShoot then
-        local target = getClosestEnemy()
-        if target and (Camera.CFrame.Position - target.Character.HumanoidRootPart.Position).Magnitude < 50 then
-            mouse1click()
-        end
-    end
+    return oldNamecall(self, ...)
 end)
