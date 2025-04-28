@@ -1,6 +1,5 @@
 -- Settings
-local AimbotEnabled = true
-local AimbotSmoothness = 0.15
+local SilentAimEnabled = true
 
 -- Services
 local Players = game:GetService("Players")
@@ -37,23 +36,22 @@ local function getClosestEnemy()
     return closestPlayer
 end
 
-local function aimAt(target)
-    if not target or not target.Character then return end
-    local head = target.Character:FindFirstChild("Head")
-    if not head then return end
+-- Silent Aim Hook
+local oldNamecall
+oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+    local args = {...}
+    local method = getnamecallmethod()
 
-    local camCF = Camera.CFrame
-    local direction = (head.Position - camCF.Position).Unit
-    local newLook = camCF.LookVector:Lerp(direction, AimbotSmoothness)
-    Camera.CFrame = CFrame.new(camCF.Position, camCF.Position + newLook)
-end
-
--- Main Loop
-RunService.RenderStepped:Connect(function()
-    if AimbotEnabled then
+    if SilentAimEnabled and method == "FireServer" and tostring(self) == "BulletEvent" then
         local target = getClosestEnemy()
-        if target then
-            aimAt(target)
+        if target and isAlive(target) then
+            local head = target.Character:FindFirstChild("Head")
+            if head then
+                args[1] = head.Position
+                return oldNamecall(self, unpack(args))
+            end
         end
     end
+
+    return oldNamecall(self, ...)
 end)
